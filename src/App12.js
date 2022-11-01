@@ -9,14 +9,16 @@ import moment from 'moment'
 import CustomModal from './components/CustomModal'
 import DateRangePicker from 'react-bootstrap-daterangepicker'
 import { FormGroup, Label, Input } from 'reactstrap'
-import { gapi } from 'gapi-script'
+import { gapi, loadAuth2 } from 'gapi-script'
+import { Axios } from 'axios'
 
 let todayStr = new Date().toISOString().replace(/T.*$/, '')
 let tokenClient
 
 const apiKEY = 'AIzaSyA0SwXJDL2P09zUazraFeq0Rk1W3r_pvf4'
 const clientId = '843203138930-kor2v2jk15o9sqt76qmagckdr7slkqsq.apps.googleusercontent.com'
-// const access_token = 'ya29.a0Aa4xrXOFsKdO5vWQgmcIpSJSroU3cuQ8DIGsqRXchUcxf5dl3K9blDgPrmdGZ9rU9EcbLxQY9LAp9i5ZzSlefAnktucVkGX405ofLUh9tVl5GqF80RkaTGFqLNZr6LLCQrksv5Ne9D-TIAD_2Ycn5POtL0V-aCgYKATASARESFQEjDvL9uM3YTbkj0-T5WvLVX0TvBw0163'
+const access_token =
+	'ya29.a0Aa4xrXOFsKdO5vWQgmcIpSJSroU3cuQ8DIGsqRXchUcxf5dl3K9blDgPrmdGZ9rU9EcbLxQY9LAp9i5ZzSlefAnktucVkGX405ofLUh9tVl5GqF80RkaTGFqLNZr6LLCQrksv5Ne9D-TIAD_2Ycn5POtL0V-aCgYKATASARESFQEjDvL9uM3YTbkj0-T5WvLVX0TvBw0163'
 
 function App() {
 	const [title, setTitle] = useState('')
@@ -30,6 +32,7 @@ function App() {
 	const calendarRef = useRef(null)
 
 	function handleSubmit() {
+		// console.log(state.selectInfo.view.calendar);
 		const newEvent = {
 			id: 'asfdsa',
 			title,
@@ -39,8 +42,10 @@ function App() {
 		}
 		console.log(state, 'state')
 		console.log(newEvent, 'event')
+		// console.log(newEvent);
 
 		let calendarApi = calendarRef.current.getApi()
+		// let calendarApi = selectInfo.view.calendar
 
 		calendarApi.addEvent(newEvent)
 		handleClose()
@@ -101,6 +106,7 @@ function App() {
 	const renderEventContent = (eventInfo) => {
 		return (
 			<div>
+				{/* <b>{eventInfo.timeText}</b> */}
 				<i
 					style={{
 						whiteSpace: 'nowrap',
@@ -115,81 +121,23 @@ function App() {
 	}
 
 	function handleEventDrop(checkInfo) {
+		// console.log(checkInfo.event.start.toISOString());
+		// checkInfo.revert();
 		setState({ checkInfo, state: 'drop' })
 		setConfirmModal(true)
 	}
 	function handleEventResize(checkInfo) {
+		// console.log(checkInfo);
 		setState({ checkInfo, state: 'resize' })
 		setConfirmModal(true)
 	}
 	function handleEvents(events) {
-		console.log(events)
+		// console.log(events)
+		// setCurrentEvents(events)
 	}
 
-	useEffect(() => {
-		try {
-			gapi.load('client:auth2', () => {
-				gapi.client
-					.init({
-						apiKey: apiKEY,
-						clientId: clientId,
-						scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
-						plugin_name: 'calender',
-					})
-					.then(async () => {
-						gapi.auth2
-							.getAuthInstance()
-							.signIn()
-							.then(async (res) => {
-								console.log(res)
-								await gapi.client.load('https://content.googleapis.com/discovery/v1/apis/calendar/v3/rest')
-								await gapi.client.calendar.events.list({ calendarId: 'primary', maxAttendees: 1 }).then(
-									function (response) {
-										// Handle the results here (response.result has the parsed body).
-										console.log('Response', response)
-									},
-									function (err) {
-										console.error('Execute error', err)
-									},
-								)
-							})
-					})
-			})
-		} catch (err) {
-			console.log(err)
-		}
-	}, [])
+	useEffect(() => {}, [])
 
-	const addEvent = (calendarID, event) => {
-		function initiate() {
-			gapi.load('client:auth2', () => {
-				console.log('client loaded')
-
-				gapi.client.init({ apiKey: apiKEY, clientId: clientId, scope: 'https://www.googleapis.com/auth/calendar' })
-
-				gapi.client.load('calendar', 'v3', () => console.log('calendar loaded'))
-
-				gapi.auth2
-					.getAuthInstance()
-					.signIn({ prompt: 'consent' })
-					.then(() => {
-						console.log('insert fn')
-						var request = gapi.client.calendar.events.insert({
-							calendarId: calendarID,
-							resource: event,
-						})
-
-						request.execute((e) => {
-							window.open(e.htmlLink)
-						})
-					})
-					.catch((err) => console.log(err))
-			})
-		}
-		gapi.load('client', initiate)
-	}
-
-	// // Make sure the client is loaded and sign-in is complete before calling this method.
 	const execute = async () => {
 		var event = {
 			summary: 'Google I/O 2015',
@@ -213,8 +161,6 @@ function App() {
 				],
 			},
 		}
-
-		addEvent('primary', event)
 	}
 
 	return (
