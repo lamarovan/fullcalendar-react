@@ -118,72 +118,90 @@ function App() {
 		setState({ checkInfo, state: 'drop' })
 		setConfirmModal(true)
 	}
+
 	function handleEventResize(checkInfo) {
 		setState({ checkInfo, state: 'resize' })
 		setConfirmModal(true)
 	}
+
 	function handleEvents(events) {
-		console.log(events)
+		// console.log(events)
 	}
 
-	useEffect(() => {
-		try {
-			gapi.load('client:auth2', () => {
-				gapi.client
-					.init({
-						apiKey: apiKEY,
-						clientId: clientId,
-						scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
-						plugin_name: 'calender',
-					})
-					.then(async () => {
-						gapi.auth2
-							.getAuthInstance()
-							.signIn()
-							.then(async (res) => {
-								console.log(res)
-								await gapi.client.load('https://content.googleapis.com/discovery/v1/apis/calendar/v3/rest')
-								await gapi.client.calendar.events.list({ calendarId: 'primary', maxAttendees: 1 }).then(
-									function (response) {
-										// Handle the results here (response.result has the parsed body).
-										console.log('Response', response)
-									},
-									function (err) {
-										console.error('Execute error', err)
-									},
-								)
-							})
-					})
+	const handleClientLoad = () => {
+		gapi.load('client:auth2', async () => {
+			await gapi.client.init({
+				apiKey: apiKEY,
+				clientId: clientId,
+				scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
+				plugin_name: 'calender',
 			})
-		} catch (err) {
-			console.log(err)
-		}
-	}, [])
+			await gapi.auth2.getAuthInstance().signIn()
+			// console.log(user, 'user')
+			await gapi.client.load('https://content.googleapis.com/discovery/v1/apis/calendar/v3/rest')
+		})
+	}
+
+	const logEvents = () => {
+		gapi.client.calendar.events.list({ calendarId: 'primary', maxAttendees: 1 }).then(
+			function (response) {
+				// Handle the results here (response.result has the parsed body).
+				console.log('Response', response)
+			},
+			function (err) {
+				console.error('Execute error', err)
+			},
+		)
+	}
+
+	handleClientLoad()
+
+	// useEffect(() => {
+	// try {
+	// 	// const user = gapi.auth2.getAuthInstance().signIn()
+	// 	// gapi.client.load('https://content.googleapis.com/discovery/v1/apis/calendar/v3/rest')
+	// 	// const calendarResponse = gapi.client.calendar.events.list({ calendarId: 'primary', maxAttendees: 1 })
+	// 	// console.log(calendarResponse)
+	// 	gapi.load('client:auth2', () => {
+	// 		gapi.client
+	// 			.init({
+	// 				apiKey: apiKEY,
+	// 				clientId: clientId,
+	// 				scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
+	// 				plugin_name: 'calender',
+	// 			})
+	// 			.then(async () => {
+	// 				gapi.auth2
+	// 					.getAuthInstance()
+	// 					.signIn()
+	// 					.then(async (res) => {
+	// 						console.log(res)
+	// 						await gapi.client.load('https://content.googleapis.com/discovery/v1/apis/calendar/v3/rest')
+	// 						await gapi.client.calendar.events.list({ calendarId: 'primary', maxAttendees: 1 }).then(
+	// 							function (response) {
+	// 								// Handle the results here (response.result has the parsed body).
+	// 								console.log('Response', response)
+	// 							},
+	// 							function (err) {
+	// 								console.error('Execute error', err)
+	// 							},
+	// 						)
+	// 					})
+	// 			})
+	// 	})
+	// } catch (err) {
+	// 	console.log(err)
+	// }
+	// }, [])
 
 	const addEvent = (calendarID, event) => {
 		function initiate() {
-			gapi.load('client:auth2', () => {
-				console.log('client loaded')
-
-				gapi.client.init({ apiKey: apiKEY, clientId: clientId, scope: 'https://www.googleapis.com/auth/calendar' })
-
-				gapi.client.load('calendar', 'v3', () => console.log('calendar loaded'))
-
-				gapi.auth2
-					.getAuthInstance()
-					.signIn({ prompt: 'consent' })
-					.then(() => {
-						console.log('insert fn')
-						var request = gapi.client.calendar.events.insert({
-							calendarId: calendarID,
-							resource: event,
-						})
-
-						request.execute((e) => {
-							window.open(e.htmlLink)
-						})
-					})
-					.catch((err) => console.log(err))
+			var request = gapi.client.calendar.events.insert({
+				calendarId: calendarID,
+				resource: event,
+			})
+			request.execute((e) => {
+				window.open(e.htmlLink)
 			})
 		}
 		gapi.load('client', initiate)
@@ -219,7 +237,7 @@ function App() {
 
 	return (
 		<div className="App">
-			{/* <button onClick={() => authenticate()}>authenticate btn</button> */}
+			<button onClick={() => logEvents()}>log events</button>
 			<button onClick={() => execute()}>execute</button>
 			<FullCalendar
 				ref={calendarRef}
@@ -227,8 +245,8 @@ function App() {
 				headerToolbar={{
 					left: 'prev,today,next',
 					center: 'title',
-					// right: 'dayGridMonth,timeGridWeek,timeGridDay',
-					right: '',
+					right: 'dayGridMonth,timeGridWeek,timeGridDay',
+					// right: '',
 				}}
 				buttonText={{
 					today: 'current',
