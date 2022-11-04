@@ -12,17 +12,38 @@ import { FormGroup, Label, Input } from 'reactstrap'
 import { gapi } from 'gapi-script'
 
 let todayStr = new Date().toISOString().replace(/T.*$/, '')
-let tokenClient
 
 const apiKEY = 'AIzaSyA0SwXJDL2P09zUazraFeq0Rk1W3r_pvf4'
 const clientId = '843203138930-kor2v2jk15o9sqt76qmagckdr7slkqsq.apps.googleusercontent.com'
 // const access_token = 'ya29.a0Aa4xrXOFsKdO5vWQgmcIpSJSroU3cuQ8DIGsqRXchUcxf5dl3K9blDgPrmdGZ9rU9EcbLxQY9LAp9i5ZzSlefAnktucVkGX405ofLUh9tVl5GqF80RkaTGFqLNZr6LLCQrksv5Ne9D-TIAD_2Ycn5POtL0V-aCgYKATASARESFQEjDvL9uM3YTbkj0-T5WvLVX0TvBw0163'
 
+gapi.load('client:auth2', async () => {
+	await gapi.auth2.init({
+		clientId: clientId,
+		plugin_name: 'calender',
+	})
+	console.log('first loaded')
+})
+
 function App() {
 	const [title, setTitle] = useState('')
 	const [start, setStart] = useState(new Date())
 	const [end, setEnd] = useState(new Date())
-	const [events, setEvents] = useState([])
+	const [events, setEvents] = useState([
+		{
+			id: '1b',
+			title: 'All-day event',
+			start: todayStr,
+			// date: "2020-07-29"
+		},
+		{
+			id: '1a',
+			title: 'Timed event',
+			start: todayStr + 'T12:00:00',
+			end: todayStr + 'T12:30:00',
+			// date: "2020-07-30"
+		},
+	])
 	const [modal, setModal] = useState(false)
 	const [state, setState] = useState({})
 	const [confirmModal, setConfirmModal] = useState(false)
@@ -128,33 +149,48 @@ function App() {
 		// console.log(events)
 	}
 
-	const handleClientLoad = () => {
-		gapi.load('client:auth2', async () => {
-			await gapi.client.init({
-				apiKey: apiKEY,
-				clientId: clientId,
-				scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
-				plugin_name: 'calender',
+	const authenticate = async () => {
+		await gapi.auth2
+			.getAuthInstance()
+			.signIn({ scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events' })
+		await gapi.client.load('https://content.googleapis.com/discovery/v1/apis/calendar/v3/rest')
+		console.log('signed in and client loaded')
+	}
+
+	// const handleClientLoad = () => {
+	// 	gapi.load('client:auth2', async () => {
+	// 		await gapi.client.init({
+	// 			apiKey: apiKEY,
+	// 			clientId: clientId,
+	// 			scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
+	// 			plugin_name: 'calender',
+	// 		})
+	// 		await gapi.auth2.getAuthInstance().signIn()
+	// 		// console.log(user, 'user')
+	// 		await gapi.client.load('https://content.googleapis.com/discovery/v1/apis/calendar/v3/rest')
+	// 	})
+	// }
+	// handleClientLoad()
+
+	const logEvents = async () => {
+		try {
+			const response = await gapi.client.calendar.events.list({ calendarId: 'primary', maxAttendees: 1 })
+			const gCalEvents = response.result.items
+			let newEventsArr = []
+			gCalEvents.forEach((item) => {
+				let event = {
+					id: item.id,
+					title: item.summary,
+					start: item.start.dateTime,
+					end: item.end.dateTime,
+				}
+				newEventsArr.push(event)
 			})
-			await gapi.auth2.getAuthInstance().signIn()
-			// console.log(user, 'user')
-			await gapi.client.load('https://content.googleapis.com/discovery/v1/apis/calendar/v3/rest')
-		})
+			setEvents((prevArr) => [...prevArr, ...newEventsArr])
+		} catch (err) {
+			console.log(err)
+		}
 	}
-
-	const logEvents = () => {
-		gapi.client.calendar.events.list({ calendarId: 'primary', maxAttendees: 1 }).then(
-			function (response) {
-				// Handle the results here (response.result has the parsed body).
-				console.log('Response', response)
-			},
-			function (err) {
-				console.error('Execute error', err)
-			},
-		)
-	}
-
-	handleClientLoad()
 
 	// useEffect(() => {
 	// try {
@@ -237,6 +273,7 @@ function App() {
 
 	return (
 		<div className="App">
+			<button onClick={() => authenticate()}>authenticate</button>
 			<button onClick={() => logEvents()}>log events</button>
 			<button onClick={() => execute()}>execute</button>
 			<FullCalendar
@@ -261,26 +298,12 @@ function App() {
 				selectMirror={true}
 				dayMaxEvents={true}
 				weekends={true}
-				//
-				initialEvents={[
-					{
-						id: '1b',
-						title: 'All-day event',
-						start: todayStr,
-						// date: "2020-07-29"
-					},
-					{
-						id: '1a',
-						title: 'Timed event',
-						start: todayStr + 'T12:00:00',
-						end: todayStr + 'T12:30:00',
-						// date: "2020-07-30"
-					},
-				]} // alternatively, use the `events` setting to fetch from a feed
 				select={handleDateSelect}
 				eventContent={renderEventContent} // custom render function
 				eventClick={handleEventClick}
-				eventsSet={() => handleEvents(events)}
+				// eventsSet={() => handleEvents(events)}
+				// initialEvents={[{ title: 'nwe', id: '123', start: '2022-11-05' }]}
+				events={events}
 				eventDrop={handleEventDrop}
 				eventResize={handleEventResize}
 				//
