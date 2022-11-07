@@ -4,10 +4,10 @@ import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import CustomModal from './components/CustomModal'
-import DateRangePicker from 'react-bootstrap-daterangepicker'
-// import { DatePicker, Space } from 'antd'
-import { FormGroup, Label, Input } from 'reactstrap'
+// import CustomModal from './components/CustomModal'
+// import DateRangePicker from 'react-bootstrap-daterangepicker'
+// import { DatePicker, Form, Modal, Space } from 'antd'
+// import { FormGroup, Label, Input } from 'reactstrap'
 import { gapi } from 'gapi-script'
 
 // const apiKEY = 'AIzaSyA0SwXJDL2P09zUazraFeq0Rk1W3r_pvf4'
@@ -157,9 +157,9 @@ function App() {
 		setConfirmModal(true)
 	}
 
-	function handleEvents(events) {
-		// console.log(events)
-	}
+	// function handleEvents(events) {
+	// console.log(events)
+	// }
 
 	const authenticate = async () => {
 		await gapi.auth2
@@ -320,7 +320,7 @@ function App() {
 				}}
 			/>
 
-			<CustomModal
+			{/* <CustomModal
 				title={state.state === 'update' ? 'Update Event' : 'Add Event'}
 				isOpen={modal}
 				toggle={handleCloseModal}
@@ -342,9 +342,9 @@ function App() {
 				</FormGroup>
 				<FormGroup>
 					<Label for="exampleEmail">From - End</Label>
-					{/* <Space>
+					<Space>
 						<DatePicker.RangePicker showTime={{ format: 'HH:mm' }} />
-					</Space> */}
+					</Space>
 					<DateRangePicker
 						initialSettings={{
 							locale: {
@@ -367,9 +367,9 @@ function App() {
 						<input className="form-control" type="text" />
 					</DateRangePicker>
 				</FormGroup>
-			</CustomModal>
+			</CustomModal> */}
 
-			<CustomModal
+			{/* <CustomModal
 				title={state.state === 'resize' ? 'Resize Event' : 'Drop Event'}
 				isOpen={confirmModal}
 				toggle={() => {
@@ -385,7 +385,7 @@ function App() {
 				submitText={'OK'}
 			>
 				Do you want to {state.state} this event?
-			</CustomModal>
+			</CustomModal> */}
 		</div>
 	)
 }
