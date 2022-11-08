@@ -4,15 +4,12 @@ import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
-// import CustomModal from './components/CustomModal'
-// import DateRangePicker from 'react-bootstrap-daterangepicker'
-// import { DatePicker, Form, Modal, Space } from 'antd'
-// import { FormGroup, Label, Input } from 'reactstrap'
 import { gapi } from 'gapi-script'
+import { Form, Modal, Input, DatePicker } from 'antd'
+import moment from 'moment'
 
 // const apiKEY = 'AIzaSyA0SwXJDL2P09zUazraFeq0Rk1W3r_pvf4'
 const clientId = '843203138930-kor2v2jk15o9sqt76qmagckdr7slkqsq.apps.googleusercontent.com'
-// const access_token = 'ya29.a0Aa4xrXOFsKdO5vWQgmcIpSJSroU3cuQ8DIGsqRXchUcxf5dl3K9blDgPrmdGZ9rU9EcbLxQY9LAp9i5ZzSlefAnktucVkGX405ofLUh9tVl5GqF80RkaTGFqLNZr6LLCQrksv5Ne9D-TIAD_2Ycn5POtL0V-aCgYKATASARESFQEjDvL9uM3YTbkj0-T5WvLVX0TvBw0163'
 
 gapi.load('client:auth2', async () => {
 	await gapi.auth2.init({
@@ -23,27 +20,15 @@ gapi.load('client:auth2', async () => {
 })
 
 function App() {
-	const [title, setTitle] = useState('')
-	const [start, setStart] = useState(new Date())
-	const [end, setEnd] = useState(new Date())
 	const [events, setEvents] = useState([])
 	const [modal, setModal] = useState(false)
 	const [state, setState] = useState({})
 	const [confirmModal, setConfirmModal] = useState(false)
+	const [form] = Form.useForm()
 
 	const calendarRef = useRef(null)
 
 	const addEvent = (event) => {
-		// function initiate() {
-		// 	var request = gapi.client.calendar.events.insert({
-		// 		calendarId: calendarID,
-		// 		resource: event,
-		// 	})
-		// 	request.execute((e) => {
-		// 		window.open(e.htmlLink)
-		// 	})
-		// }
-		// gapi.load('client', initiate)
 		return gapi.client.calendar.events.insert({
 			calendarId: 'primary',
 			resource: event,
@@ -51,44 +36,45 @@ function App() {
 	}
 
 	async function handleSubmit() {
+		console.log('submit')
 		try {
 			const newEvent = {
-				summary: title,
-				start: { dateTime: state.selectInfo?.startStr || start.toISOString() },
-				end: { dateTime: state.selectInfo?.endStr || end.toISOString() },
+				summary: form.getFieldValue('title'),
+				start: { dateTime: state.selectInfo?.startStr },
+				end: { dateTime: state.selectInfo?.endStr },
 			}
-			//returns the created event in google calendar
 			const res = await addEvent(newEvent)
 			console.log(res)
 			logEvents()
-			handleClose()
-			// console.log(state, 'state')
-			// console.log(newEvent, 'event')
-			// let calendarApi = calendarRef.current.getApi()
-			// calendarApi.addEvent(newEvent)
 		} catch (error) {
 			console.log(error)
+		} finally {
 			handleClose()
 		}
 	}
 
-	const updateEvent = (event) => {
-		return gapi.client.calendar.events.insert({
-			calendarId: 'primary',
-			resource: event,
-		})
-	}
-
-	function handleEdit() {
-		// console.log(start, end);
-		// state.clickInfo.event.setAllDay(true);
-
-		state.clickInfo.event.setStart(start)
-		state.clickInfo.event.setEnd(end)
-		state.clickInfo.event.mutate({
-			standardProps: { title },
-		})
-		handleClose()
+	async function handleEdit() {
+		try {
+			const res = await gapi.client.calendar.events.update({
+				calendarId: 'primary',
+				eventId: state.clickInfo.event.id,
+				resource: {
+					summary: form.getFieldValue('title'),
+					start: {
+						dateTime: form.getFieldValue('start').format(),
+					},
+					end: {
+						dateTime: form.getFieldValue('end').format(),
+					},
+				},
+			})
+			console.log(res, 'update response')
+			logEvents()
+		} catch (error) {
+			console.log(error)
+		} finally {
+			handleClose()
+		}
 	}
 
 	function handleDelete() {
@@ -99,9 +85,7 @@ function App() {
 	}
 
 	function handleClose() {
-		setTitle('')
-		setStart(new Date())
-		setEnd(new Date())
+		form.resetFields()
 		setState({})
 		setModal(false)
 	}
@@ -112,22 +96,23 @@ function App() {
 	}
 
 	const handleEventClick = (clickInfo) => {
+		form.setFieldsValue({
+			title: clickInfo.event.title,
+			start: moment(clickInfo.event.startStr),
+			end: moment(clickInfo.event.endStr),
+		})
 		setState({ clickInfo, state: 'update' })
-		// set detail
-		setTitle(clickInfo.event.title)
-		setStart(clickInfo.event.start)
-		setEnd(clickInfo.event.end)
 
 		setModal(true)
 	}
 
 	const handleDateSelect = (selectInfo) => {
-		console.log(selectInfo)
-		// console.log(moment(selectInfo.startStr).format('YYYY-MM-DD hh:mm:ss a'))
 		selectInfo.view.calendar.unselect()
 		setState({ selectInfo, state: 'create' })
-		setStart(selectInfo.start)
-		setEnd(selectInfo.end)
+		form.setFieldsValue({
+			start: moment(selectInfo.startStr),
+			end: moment(selectInfo.endStr),
+		})
 		setModal(true)
 	}
 
@@ -157,10 +142,6 @@ function App() {
 		setConfirmModal(true)
 	}
 
-	// function handleEvents(events) {
-	// console.log(events)
-	// }
-
 	const authenticate = async () => {
 		await gapi.auth2
 			.getAuthInstance()
@@ -169,21 +150,6 @@ function App() {
 		console.log('signed in and client loaded')
 		logEvents()
 	}
-
-	// const handleClientLoad = () => {
-	// 	gapi.load('client:auth2', async () => {
-	// 		await gapi.client.init({
-	// 			apiKey: apiKEY,
-	// 			clientId: clientId,
-	// 			scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
-	// 			plugin_name: 'calender',
-	// 		})
-	// 		await gapi.auth2.getAuthInstance().signIn()
-	// 		// console.log(user, 'user')
-	// 		await gapi.client.load('https://content.googleapis.com/discovery/v1/apis/calendar/v3/rest')
-	// 	})
-	// }
-	// handleClientLoad()
 
 	const logEvents = async () => {
 		try {
@@ -206,77 +172,14 @@ function App() {
 		}
 	}
 
-	// useEffect(() => {
-	// try {
-	// 	// const user = gapi.auth2.getAuthInstance().signIn()
-	// 	// gapi.client.load('https://content.googleapis.com/discovery/v1/apis/calendar/v3/rest')
-	// 	// const calendarResponse = gapi.client.calendar.events.list({ calendarId: 'primary', maxAttendees: 1 })
-	// 	// console.log(calendarResponse)
-	// 	gapi.load('client:auth2', () => {
-	// 		gapi.client
-	// 			.init({
-	// 				apiKey: apiKEY,
-	// 				clientId: clientId,
-	// 				scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
-	// 				plugin_name: 'calender',
-	// 			})
-	// 			.then(async () => {
-	// 				gapi.auth2
-	// 					.getAuthInstance()
-	// 					.signIn()
-	// 					.then(async (res) => {
-	// 						console.log(res)
-	// 						await gapi.client.load('https://content.googleapis.com/discovery/v1/apis/calendar/v3/rest')
-	// 						await gapi.client.calendar.events.list({ calendarId: 'primary', maxAttendees: 1 }).then(
-	// 							function (response) {
-	// 								// Handle the results here (response.result has the parsed body).
-	// 								console.log('Response', response)
-	// 							},
-	// 							function (err) {
-	// 								console.error('Execute error', err)
-	// 							},
-	// 						)
-	// 					})
-	// 			})
-	// 	})
-	// } catch (err) {
-	// 	console.log(err)
-	// }
-	// }, [])
-
-	// // Make sure the client is loaded and sign-in is complete before calling this method.
-	// const execute = async () => {
-	// 	var event = {
-	// 		summary: 'Google I/O 2015',
-	// 		location: '800 Howard St., San Francisco, CA 94103',
-	// 		description: "A chance to hear more about Google's developer products.",
-	// 		start: {
-	// 			dateTime: '2022-10-28T09:00:00-07:00',
-	// 			timeZone: 'America/Los_Angeles',
-	// 		},
-	// 		end: {
-	// 			dateTime: '2022-10-28T17:00:00-07:00',
-	// 			timeZone: 'America/Los_Angeles',
-	// 		},
-	// 		recurrence: ['RRULE:FREQ=DAILY;COUNT=2'],
-	// 		attendees: [{ email: 'lpage@example.com' }, { email: 'sbrin@example.com' }],
-	// 		reminders: {
-	// 			useDefault: false,
-	// 			overrides: [
-	// 				{ method: 'email', minutes: 24 * 60 },
-	// 				{ method: 'popup', minutes: 10 },
-	// 			],
-	// 		},
-	// 	}
-
-	// 	addEvent('primary', event)
-	// }
+	const handleChange = (newDate, dateString, field) => {
+		form.setFieldValue(field, newDate)
+		// debugger
+	}
 
 	return (
 		<div className="App">
 			<button onClick={() => authenticate()}>authenticate</button>
-			{/* <button onClick={() => logEvents()}>log events</button> */}
-			{/* <button onClick={() => execute()}>execute</button> */}
 			<FullCalendar
 				ref={calendarRef}
 				plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -320,72 +223,30 @@ function App() {
 				}}
 			/>
 
-			{/* <CustomModal
+			<Modal
 				title={state.state === 'update' ? 'Update Event' : 'Add Event'}
-				isOpen={modal}
-				toggle={handleCloseModal}
+				open={modal}
+				onOk={state?.clickInfo ? handleEdit : handleSubmit}
 				onCancel={handleCloseModal}
-				onSubmit={state.clickInfo ? handleEdit : handleSubmit}
-				submitText={state.clickInfo ? 'Update' : 'Save'}
-				onDelete={state.clickInfo && handleDelete}
-				deleteText="Delete"
 			>
-				<FormGroup>
-					<Label for="exampleEmail">Title</Label>
-					<Input
-						type="text"
-						name="title"
-						placeholder="with a placeholder"
-						value={title}
-						onChange={(e) => setTitle(e.target.value)}
-					/>
-				</FormGroup>
-				<FormGroup>
-					<Label for="exampleEmail">From - End</Label>
-					<Space>
-						<DatePicker.RangePicker showTime={{ format: 'HH:mm' }} />
-					</Space>
-					<DateRangePicker
-						initialSettings={{
-							locale: {
-								format: 'M/DD hh:mm A',
-							},
-							startDate: start,
-							endDate: end,
-							timePicker: true,
-						}}
-						onApply={(event, picker) => {
-							// console.log(
-							//   "picker",
-							//   picker.startDate.toISOString(),
-							//   picker.endDate.toISOString()
-							// );
-							setStart(new Date(picker.startDate))
-							setEnd(new Date(picker.endDate))
-						}}
-					>
-						<input className="form-control" type="text" />
-					</DateRangePicker>
-				</FormGroup>
-			</CustomModal> */}
-
-			{/* <CustomModal
-				title={state.state === 'resize' ? 'Resize Event' : 'Drop Event'}
-				isOpen={confirmModal}
-				toggle={() => {
-					state.checkInfo.revert()
-					setConfirmModal(false)
-				}}
-				onCancel={() => {
-					state.checkInfo.revert()
-					setConfirmModal(false)
-				}}
-				cancelText="Cancel"
-				onSubmit={() => setConfirmModal(false)}
-				submitText={'OK'}
-			>
-				Do you want to {state.state} this event?
-			</CustomModal> */}
+				<Form form={form} autoComplete="off">
+					<Form.Item label="Title" name="title">
+						<Input />
+					</Form.Item>
+					<Form.Item label="Start date/time" name="start">
+						<DatePicker
+							showTime={{ format: 'HH:mm' }}
+							onChange={(newDate, dateString) => handleChange(newDate, dateString, 'start')}
+						/>
+					</Form.Item>
+					<Form.Item label="End date/time" name="end">
+						<DatePicker
+							showTime={{ format: 'HH:mm' }}
+							onChange={(newDate, dateString) => handleChange(newDate, dateString, 'end')}
+						/>
+					</Form.Item>
+				</Form>
+			</Modal>
 		</div>
 	)
 }
