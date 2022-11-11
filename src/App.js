@@ -8,8 +8,7 @@ import { gapi } from 'gapi-script'
 import { Form, Modal, Input, DatePicker } from 'antd'
 import moment from 'moment'
 
-// const apiKEY = 'AIzaSyA0SwXJDL2P09zUazraFeq0Rk1W3r_pvf4'
-const clientId = '843203138930-kor2v2jk15o9sqt76qmagckdr7slkqsq.apps.googleusercontent.com'
+const clientId = process.env.CLIENT_ID
 
 gapi.load('client:auth2', async () => {
 	await gapi.auth2.init({
